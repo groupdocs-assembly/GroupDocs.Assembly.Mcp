@@ -1,0 +1,27 @@
+name: Feature request
+description: Propose a new tool, parameter, or behaviour for the MCP server
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: The task you want an AI agent to accomplish with this server — not the implementation. E.g. "generate one document per CSV row", "merge two data sources into one template".
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Suggested tool / parameter shape (optional)
+      description: If you have a concrete idea — tool name, arguments, response — sketch it here.
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Where does this belong?
+      description: Engine capabilities (new formats, template syntax, rendering fidelity) come from GroupDocs.Assembly itself; this repo wraps them as MCP tools.
+      options:
+        - MCP server (new tool / parameter / response shape)
+        - Underlying engine capability (format support, template syntax, fidelity)
+        - Not sure
+    validations:
+      required: true

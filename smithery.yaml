@@ -1,0 +1,25 @@
+# Smithery registry manifest — https://smithery.ai
+# Publishing is a manual step (see the improvement plan, task M8): a maintainer with a
+# Smithery account runs `smithery publish` or submits via the dashboard.
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required: []
+    properties:
+      storagePath:
+        type: string
+        title: Storage path
+        description: Base folder for templates, data and generated documents. Defaults to the current working directory.
+      licensePath:
+        type: string
+        title: License path
+        description: Path to a GroupDocs license file. Leave empty to run in evaluation mode ("Evaluation Only" line in generated documents, extra worksheet in saved workbooks, plain-text body only in e-mail messages).
+  commandFunction: |-
+    (config) => ({
+      command: "dnx",
+      args: ["GroupDocs.Assembly.Mcp", "--yes"],
+      env: Object.assign({},
+        config.storagePath ? { GROUPDOCS_MCP_STORAGE_PATH: config.storagePath } : {},
+        config.licensePath ? { GROUPDOCS_LICENSE_PATH: config.licensePath } : {})
+    })
