@@ -1,0 +1,59 @@
+# GroupDocs.Assembly MCP Server
+
+MCP server for GroupDocs.Assembly — generate Word, Excel, PowerPoint, PDF and email documents from templates and data with AI agents. Fill a DOCX, XLSX, PPTX, Markdown or HTML template with JSON, XML, CSV or spreadsheet data — tables, lists, conditions, charts, barcodes and images — save the result as DOCX, PDF, XLSX, PPTX, HTML, Markdown or EML, produce one document per record, and ask which data fields a template needs. Runs locally — documents never leave the machine.
+
+## Install
+
+- dnx (recommended): dnx GroupDocs.Assembly.Mcp --yes   (pin: GroupDocs.Assembly.Mcp@26.10.0)
+- Docker: docker run --rm -i -v "$(pwd)/documents:/data" ghcr.io/groupdocs-assembly/assembly-net-mcp:latest   (Linux hosts: add --user "$(id -u):$(id -g)")
+- Global tool: dotnet tool install -g GroupDocs.Assembly.Mcp   then   groupdocs-assembly-mcp
+- Client key: groupdocs-assembly · MCP Registry: io.github.groupdocs-assembly/groupdocs-assembly-mcp
+
+## MCP tools
+
+- assemble_document — fills a template's <<…>> tags with data and saves the result in the template's format, another format of its family, or PDF; data as inline JSON (dataJson) or a .json, .xml, .csv/.tsv file or a document table (data)
+- assemble_per_record — one document per element of a JSON array (mail merge); files named by number or by a record field; failed records listed
+- get_template_fields — a template's tags, the names it uses for its data, the fields it reads, and a JSON skeleton of the data to fill in (JSON)
+- get_document_info — a file as a template (family, tag count, data names, save targets) and as data (JSON keys, CSV header, document tables) (JSON)
+- get_supported_formats — template formats, save targets per family, data formats (JSON)
+- get_license_status — licensing mode, metered consumption, engine version
+
+A JSON object's keys are the names the template uses ({"customer":{…},"items":[…]} fills <<[customer.Name]>> and <<foreach [i in items]>>); an array, XML, CSV or table is named after the collection the template uses, or pass dataSourceName. Failures set isError and start with the tool's prefix, e.g. "Document assembly failed for 'invoice.docx': …", and name a field the data lacks. Outputs never overwrite an existing file.
+
+## Example prompts for AI agents
+
+- Fill invoice-template.docx with this order and save it as a PDF: …
+- What data does contract-template.docx need? Give me a JSON skeleton.
+- Generate a welcome letter for every customer in customers.json, named after the customer.
+- Build the quarterly report from report-template.xlsx and sales.csv.
+- Turn the rows of attendees.xlsx into one certificate each from certificate.pptx.
+
+## Configuration
+
+- GROUPDOCS_MCP_STORAGE_PATH — base folder for templates, data and generated documents (default: current directory)
+- GROUPDOCS_MCP_OUTPUT_PATH — optional separate output folder
+- GROUPDOCS_LICENSE_PATH — GroupDocs licence file; omit for evaluation mode
+- GROUPDOCS_METERED_PUBLIC_KEY / GROUPDOCS_METERED_PRIVATE_KEY — metered (pay-per-use) licensing; needs outbound connectivity; the private key is a secret
+
+## Evaluation mode
+
+Every tool works without a licence. Generated documents start with an "Evaluation Only" line, saved workbooks gain an extra worksheet, and e-mail messages keep only their plain-text body (the HTML body is replaced). No row or document-count limit. Generating-tool responses then start with an "Evaluation mode:" line.
+
+## Native prerequisites
+
+Presentation templates need libgdiplus on Linux and macOS; Linux needs libfontconfig1 + ttf-mscorefonts-installer for PDF/XPS output. The Docker image bundles all of it; Windows needs nothing.
+
+## Limits
+
+- Templates are trusted input: image and document tags load the paths or URLs their expressions return.
+- {{name}} placeholders are not GroupDocs.Assembly syntax; use <<[name]>>.
+- A list that is empty in the data has no fields; pass allowMissingMembers=true for such data.
+- Binary templates (DOC, XLS, PPT, MSG): tags cannot be listed; pass dataSourceName with array/XML/CSV/table data.
+- Per-record assembly reads JSON only.
+
+## Links
+
+- Source: https://github.com/groupdocs-assembly/GroupDocs.Assembly.Mcp
+- Tests and how-to guides: https://github.com/groupdocs-assembly/GroupDocs.Assembly.Mcp.Tests
+- NuGet: https://www.nuget.org/packages/GroupDocs.Assembly.Mcp
+- Product: https://products.groupdocs.com/assembly/net/
