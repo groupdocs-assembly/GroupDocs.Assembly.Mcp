@@ -1,0 +1,29 @@
+{
+  "$comment": "Canonical MCP install config - the SINGLE source all generated install snippets, deeplinks, and README install blocks derive from. Edit this file, then run install/generate-install-links.ps1 to regenerate install/generated/ and the README install-buttons block. CI fails if they drift. The package VERSION is intentionally absent here - it is read from build/dependencies.props (<GroupDocsAssemblyMcp>) at generation time so there is exactly one version source of truth.",
+  "name": "groupdocs-assembly",
+  "displayName": "GroupDocs Assembly",
+  "packageId": "GroupDocs.Assembly.Mcp",
+  "toolCommand": "groupdocs-assembly-mcp",
+  "registryName": "io.github.groupdocs-assembly/groupdocs-assembly-mcp",
+  "ghcrImage": "ghcr.io/groupdocs-assembly/assembly-net-mcp",
+  "dockerHubImage": "groupdocs/assembly-net-mcp",
+  "testsRepo": "groupdocs-assembly/GroupDocs.Assembly.Mcp.Tests",
+  "command": "dnx",
+  "args": ["GroupDocs.Assembly.Mcp", "--yes"],
+  "env": {
+    "GROUPDOCS_MCP_STORAGE_PATH": "${input:storage_path}",
+    "GROUPDOCS_LICENSE_PATH": "${input:license_path}"
+  },
+  "inputs": [
+    {
+      "id": "storage_path",
+      "description": "Base folder for templates, data and generated documents",
+      "required": true
+    },
+    {
+      "id": "license_path",
+      "description": "Path to GroupDocs license file (optional - evaluation mode if empty)",
+      "required": false
+    }
+  ]
+}
