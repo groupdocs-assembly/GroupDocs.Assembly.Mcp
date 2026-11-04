@@ -1,0 +1,76 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>GroupDocs.Assembly.Mcp</PackageId>
+    <Version>$(GroupDocsAssemblyMcp)</Version>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Description>MCP server for GroupDocs.Assembly — generate Word, Excel, PowerPoint, PDF and email documents from templates and data with AI agents. Fill a DOCX, XLSX, PPTX, Markdown or HTML template with JSON, XML, CSV or spreadsheet data — tables, lists, conditions, charts, barcodes and images — save the result as DOCX, PDF, XLSX, PPTX, HTML, Markdown or EML, produce one document per record, and ask which data fields a template needs. Runs locally — documents never leave the machine. Exposes AssembleDocument, AssemblePerRecord, GetTemplateFields, GetDocumentInfo and GetSupportedFormats to AI agents.</Description>
+    <PackageTags>groupdocs;assembly;mcp;model-context-protocol;mcp-server;dotnet-tool;ai;document-generation;document-automation;report-generation;docx-template;mail-merge</PackageTags>
+    <PackageIcon>images\icon.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsPackable>true</IsPackable>
+    <!-- Package as a .NET tool so the nupkg gets the required tools/ layout
+         for `dnx` / `dotnet tool install` invocation. -->
+    <PackAsTool>true</PackAsTool>
+    <!-- Mark as MCP server for NuGet.org discovery (packagetype=McpServer filter).
+         NOTE: correct MSBuild property is singular <PackageType>; the plural form is ignored. -->
+    <PackageType>McpServer</PackageType>
+    <!-- CLI tool name for dnx / dotnet tool install invocation -->
+    <ToolCommandName>groupdocs-assembly-mcp</ToolCommandName>
+  </PropertyGroup>
+
+  <!-- Strip native debug symbols (libSkiaSharp.pdb on the win-* RIDs, ~80 MB each) from the
+       published tools/ output BEFORE pack collects it, keeping the nupkg far from NuGet.org's
+       250 MB hard limit. The managed PDB is preserved; native frames cannot be symbolised in
+       production anyway. <CopyDebugSymbolFilesFromPackages>false does NOT cover this path —
+       runtimes/<rid>/native/*.pdb reach the publish output via a separate runtime-asset path. -->
+  <Target Name="StripNativeRuntimePdbs" AfterTargets="Publish">
+    <ItemGroup>
+      <_NativeRuntimePdbs Include="$(PublishDir)runtimes/**/*.pdb" />
+    </ItemGroup>
+    <Delete Files="@(_NativeRuntimePdbs)" />
+    <Message
+      Text="StripNativeRuntimePdbs: removed @(_NativeRuntimePdbs->Count()) native PDB file(s) from publish output to keep the nupkg under NuGet.org's 250 MB limit."
+      Importance="high"
+      Condition="@(_NativeRuntimePdbs->Count()) > 0" />
+  </Target>
+
+  <ItemGroup>
+    <None Include="..\..\assets\icon.png" Pack="true" Visible="false" PackagePath="images\icon.png" />
+    <None Include="..\..\README.md" Pack="true" PackagePath="/" />
+    <!-- server.json — read by NuGet.org to generate mcp.json snippets on the package page -->
+    <None Include=".mcp\server.json" Pack="true" PackagePath=".mcp/server.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Core infrastructure — NuGet packages from groupdocs-mcp-core -->
+    <PackageReference Include="GroupDocs.Mcp.Core" Version="$(GroupDocsMcpCore)" />
+    <PackageReference Include="GroupDocs.Mcp.Local.Storage" Version="$(GroupDocsMcpCore)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="GroupDocs.Assembly" Version="$(GroupDocsAssembly)" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="$(MicrosoftExtensionsHosting)" />
+    <PackageReference Include="ModelContextProtocol" Version="$(ModelContextProtocol)" />
+    <!-- Overrides the engine's vulnerable transitive 9.0.0; see build/dependencies.props. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="$(SystemSecurityCryptographyPkcs)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- GroupDocs.Assembly's presentation engine (PPTX/PPT/ODP templates, and slides saved to PDF/XPS) calls
+         System.Drawing.Common, which the engine pulls at 6.0.0. On non-Windows that throws
+         PlatformNotSupportedException ("The type initializer for 'Gdip' threw an exception") unless this
+         switch is set - 6.0.0 still honours it (7.0+ removed it). Pair with libgdiplus + libfontconfig1 in
+         docker/Dockerfile and the Tests CI. Word, spreadsheet and email templates do not need it.
+         Measured on 26.7.0 in the dotnet/runtime:10.0 image, 2026-10-30. -->
+    <RuntimeHostConfigurationOption Include="System.Drawing.EnableUnixSupport" Value="true" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="GroupDocs.Assembly.Mcp.Tests" />
+  </ItemGroup>
+
+</Project>
