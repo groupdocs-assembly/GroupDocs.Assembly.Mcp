@@ -1,0 +1,19 @@
+services:
+  groupdocs-assembly-mcp:
+    image: ghcr.io/groupdocs-assembly/assembly-net-mcp:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ./documents:/data           # input + output (shared)
+      - ./license:/license:ro       # license file (read-only)
+      # Uncomment to route outputs to a separate folder:
+      # - ./output:/data/output
+    environment:
+      GROUPDOCS_MCP_STORAGE_PATH: /data
+      GROUPDOCS_LICENSE_PATH: /license/GroupDocs.Total.lic
+      # Optional — separate output folder (matches the volume line above):
+      # GROUPDOCS_MCP_OUTPUT_PATH: /data/output
+    stdin_open: true
+    tty: true
+    restart: unless-stopped

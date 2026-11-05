@@ -1,0 +1,279 @@
+name: Publish Prod
+
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (must match build/dependencies.props, e.g. 26.10.0)'
+        required: true
+        type: string
+
+jobs:
+  publish_prod:
+    # Accept either:
+    #   - tag push (github.ref starts with refs/tags/), or
+    #   - workflow_dispatch with a version input supplied.
+    # Branch dispatches without a version input are skipped so we never create a bogus tag/release.
+    if: startsWith(github.ref, 'refs/tags/') || inputs.version != ''
+    runs-on: windows-latest
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: true
+      # Pinned via GitHub repo variable; fallback to 1.3.0 if unset
+      CODE_SIGN_TOOL_VERSION: ${{ vars.CODE_SIGN_TOOL_VERSION || '1.3.0' }}
+    permissions:
+      contents: write         # required to create GitHub Release
+    steps:
+      - name: Verify required secrets are configured
+        shell: pwsh
+        env:
+          CODE_SIGN_CLIENT_ID: ${{ secrets.CODE_SIGN_CLIENT_ID }}
+          ES_USERNAME:         ${{ secrets.ES_USERNAME }}
+          ES_PASSWORD:         ${{ secrets.ES_PASSWORD }}
+          ES_TOTP_SECRET:      ${{ secrets.ES_TOTP_SECRET }}
+          NUGET_API_KEY_PROD:  ${{ secrets.NUGET_API_KEY_PROD }}
+        run: |
+          $required = @(
+            'CODE_SIGN_CLIENT_ID',
+            'ES_USERNAME',
+            'ES_PASSWORD',
+            'ES_TOTP_SECRET',
+            'NUGET_API_KEY_PROD'
+          )
+          $missing = @()
+          foreach ($name in $required) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              $missing += $name
+            }
+          }
+          if ($missing.Count -gt 0) {
+            Write-Error "Missing required secrets: $($missing -join ', '). Configure under Settings -> Secrets and variables -> Actions."
+            exit 1
+          }
+          Write-Host "All required secrets present."
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve and validate version
+        id: ver
+        shell: pwsh
+        run: |
+          # Derive the effective release version.
+          # Priority: tag push (github.ref_name) → workflow_dispatch input (inputs.version).
+          $version = if ('${{ github.ref_type }}' -eq 'tag') {
+            '${{ github.ref_name }}'
+          } else {
+            '${{ inputs.version }}'
+          }
+
+          if ($version -notmatch '^\d+\.\d+\.\d+$') {
+            Write-Error "Version '$version' does not match YY.MM.N (e.g. 26.10.0)."
+            exit 1
+          }
+
+          # Confirm dependencies.props agrees with the requested version.
+          [xml]$deps = Get-Content build/dependencies.props
+          $node = $deps.SelectSingleNode('//GroupDocsAssemblyMcp')
+          if ($null -eq $node) {
+            Write-Error "<GroupDocsAssemblyMcp> not found in build/dependencies.props."
+            exit 1
+          }
+          $actual = $node.InnerText.Trim()
+          if ($actual -ne $version) {
+            Write-Error "build/dependencies.props has <GroupDocsAssemblyMcp>$actual</...>, but release version is '$version'. Bump the props file, commit, and try again."
+            exit 1
+          }
+
+          # Confirm .mcp/server.json matches too (build.ps1 has its own check, but fail fast here before rest of pipeline).
+          $serverJson = Get-Content src/GroupDocs.Assembly.Mcp/.mcp/server.json -Raw
+          $pattern = '"version"\s*:\s*"' + [regex]::Escape($version) + '"'
+          $count = [regex]::Matches($serverJson, $pattern).Count
+          if ($count -ne 2) {
+            Write-Error "server.json version drift: expected both 'version' fields = '$version' (found $count of 2). Update src/GroupDocs.Assembly.Mcp/.mcp/server.json and try again."
+            exit 1
+          }
+
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "Releasing version: $version"
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Build packages
+        env:
+          BUILD_TYPE: PROD
+        run: .\build.ps1
+
+      - name: Download CodeSignTool
+        run: |
+          $version = $env:CODE_SIGN_TOOL_VERSION
+          Invoke-WebRequest -Uri "https://github.com/SSLcom/CodeSignTool/releases/download/v$version/CodeSignTool-v$version-windows.zip" -OutFile codesign.zip
+
+      - name: Unpack CodeSignTool
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\code_sign" | Out-Null
+          Expand-Archive -Path codesign.zip -DestinationPath "$env:GITHUB_WORKSPACE\code_sign" -Force
+
+      - name: Configure CodeSignTool
+        env:
+          CODE_SIGN_CLIENT_ID: ${{ secrets.CODE_SIGN_CLIENT_ID }}
+        run: |
+          $confPath = "$env:GITHUB_WORKSPACE\code_sign\conf\code_sign_tool.properties"
+          if (Test-Path $confPath) { Remove-Item $confPath -Force }
+          $lines = @(
+            "CLIENT_ID=$env:CODE_SIGN_CLIENT_ID"
+            'OAUTH2_ENDPOINT=https://login.ssl.com/oauth2/token'
+            'CSC_API_ENDPOINT=https://cs.ssl.com'
+            'TSA_URL=http://ts.ssl.com'
+            'TSA_LEGACY_URL=http://ts.ssl.com/legacy'
+          )
+          Set-Content -Path $confPath -Value $lines
+
+      - name: Prepare artifacts directory
+        run: |
+          New-Item -ItemType Directory -Force -Path "$env:GITHUB_WORKSPACE\artifacts" | Out-Null
+          Move-Item "$env:GITHUB_WORKSPACE\build_out\*" "$env:GITHUB_WORKSPACE\artifacts" -Exclude *.nupkg -Force
+
+      - name: Sign packages with SSL.com eSigner
+        # Per-file signing with a 3-minute delay before each call. SSL.com eSigner
+        # throttles rapid successive TOTP-authenticated sign operations; batching or
+        # back-to-back signs intermittently fail, so we space them out deterministically.
+        working-directory: ${{ github.workspace }}\code_sign
+        run: |
+          $version = $env:CODE_SIGN_TOOL_VERSION
+          $files = @(Get-ChildItem "$env:GITHUB_WORKSPACE\build_out" -Filter *.nupkg)
+          if ($files.Count -eq 0) {
+            Write-Error "No .nupkg files found in build_out to sign."
+            exit 1
+          }
+          foreach ($file in $files) {
+            Write-Host "Waiting 3 minutes before signing $($file.Name) (SSL.com throttling workaround)..."
+            Start-Sleep -Seconds 180
+            Write-Host "Signing $($file.Name)..."
+            & ".\jdk-11.0.2\bin\java" -Xmx1024M -jar ".\jar\code_sign_tool-$version.jar" sign `
+              -username="${{ secrets.ES_USERNAME }}" `
+              -password="${{ secrets.ES_PASSWORD }}" `
+              -totp_secret="${{ secrets.ES_TOTP_SECRET }}" `
+              -input_file_path="$($file.FullName)" `
+              -output_dir_path="$env:GITHUB_WORKSPACE/artifacts"
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "CodeSignTool failed signing $($file.Name) (exit $LASTEXITCODE)."
+              exit $LASTEXITCODE
+            }
+          }
+
+      - name: Verify all packages were signed
+        shell: pwsh
+        run: |
+          $expected = @(Get-ChildItem "$env:GITHUB_WORKSPACE\build_out" -Filter *.nupkg)
+          $signed   = @(Get-ChildItem "$env:GITHUB_WORKSPACE\artifacts" -Filter *.nupkg)
+          if ($expected.Count -eq 0) {
+            Write-Error "No input .nupkg files found in build_out - build step produced nothing to sign."
+            exit 1
+          }
+          if ($signed.Count -ne $expected.Count) {
+            $expectedNames = ($expected | ForEach-Object { $_.Name }) -join ', '
+            $signedNames   = if ($signed.Count -gt 0) { ($signed | ForEach-Object { $_.Name }) -join ', ' } else { '<none>' }
+            Write-Error "Signing produced $($signed.Count) of $($expected.Count) expected .nupkg files. Expected: $expectedNames. Found signed: $signedNames. CodeSignTool likely failed silently - check the previous step's output."
+            exit 1
+          }
+          Write-Host "Signing verified: $($signed.Count) of $($expected.Count) packages present in artifacts."
+
+      - name: Publish to Prod
+        env:
+          NUGET_API_KEY_PROD: ${{ secrets.NUGET_API_KEY_PROD }}
+        run: .\publish-prod.ps1
+
+      - name: Archive packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts
+          path: artifacts
+
+      - name: Extract changelog entry for this release
+        id: changelog
+        shell: pwsh
+        run: |
+          $tag = "${{ steps.ver.outputs.version }}"
+          $entry = Get-ChildItem -Path "changelog" -Filter "*.md" |
+            Where-Object { $_.Name -ne "README.md" } |
+            Where-Object { (Get-Content $_.FullName -Raw) -match "version:\s*$([regex]::Escape($tag))\s*$" -or `
+                            (Get-Content $_.FullName -Raw) -match "version:\s*$([regex]::Escape($tag))`r?`n" } |
+            Select-Object -First 1
+          if ($entry) {
+            $body = Get-Content $entry.FullName -Raw
+            # Strip YAML frontmatter
+            $body = [regex]::Replace($body, '(?s)\A---.*?---\s*', '')
+            $bodyFile = "$env:GITHUB_WORKSPACE\release_body.md"
+            Set-Content -Path $bodyFile -Value $body
+            echo "body_path=$bodyFile" >> $env:GITHUB_OUTPUT
+          } else {
+            Write-Host "No changelog entry found for version $tag"
+            echo "body_path=" >> $env:GITHUB_OUTPUT
+          }
+
+      - name: Create GitHub Release
+        # Creates the tag on workflow_dispatch runs (tag doesn't yet exist).
+        # On tag-push runs the tag already exists and this just attaches the release to it.
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.version }}
+          name: ${{ steps.ver.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          body_path: ${{ steps.changelog.outputs.body_path }}
+          files: artifacts/*.nupkg
+          generate_release_notes: true
+          fail_on_unmatched_files: false
+
+  publish_mcp_registry:
+    name: Publish to MCP Registry
+    runs-on: ubuntu-latest
+    needs: publish_prod
+    # Runs on every release — tag push OR valid version input. Namespace verification via GitHub OIDC
+    # is automatic since the repo lives under github.com/groupdocs-assembly/*.
+    if: startsWith(github.ref, 'refs/tags/') || inputs.version != ''
+    permissions:
+      id-token: write     # for GitHub OIDC authentication
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download mcp-publisher
+        run: |
+          curl -fsSL \
+            -o mcp-publisher.tar.gz \
+            https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz
+          tar -xzf mcp-publisher.tar.gz
+          chmod +x mcp-publisher
+
+      - name: Wait for NuGet.org to index the new version
+        # MCP Registry's NuGet ownership check queries api.nuget.org's V3 flat-container index.
+        # That index lags `dotnet nuget push` by 1–30+ min (malware scan + signature validation
+        # + CDN propagation). For large nupkgs (≈ 200+ MB) the lag routinely exceeds 10 min.
+        # Poll up to 20 min before giving up. Must run BEFORE the OIDC login: the registry JWT
+        # issued by `mcp-publisher login` is short-lived (~5 min) and would expire while we wait.
+        run: |
+          VERSION=$(jq -r '.version' src/GroupDocs.Assembly.Mcp/.mcp/server.json)
+          echo "Waiting for NuGet.org V3 index to list GroupDocs.Assembly.Mcp $VERSION..."
+          for attempt in $(seq 1 20); do
+            if curl -fsSL "https://api.nuget.org/v3-flatcontainer/groupdocs.assembly.mcp/index.json" 2>/dev/null \
+                 | jq -e --arg v "$VERSION" '.versions | index($v)' > /dev/null 2>&1; then
+              echo "Indexed after $attempt attempt(s) (~$((attempt * 60))s)."
+              exit 0
+            fi
+            echo "Attempt $attempt/20: not indexed yet, sleeping 60s..."
+            sleep 60
+          done
+          echo "::error::NuGet.org did not index $VERSION within 20 minutes. Re-run this job from the Actions UI once https://www.nuget.org/packages/GroupDocs.Assembly.Mcp/$VERSION returns HTTP 200 — dotnet nuget push --skip-duplicate is idempotent so the publish step will not double-push."
+          exit 1
+
+      - name: Authenticate with GitHub OIDC
+        run: ./mcp-publisher login github-oidc
+
+      - name: Publish server.json
+        run: ./mcp-publisher publish src/GroupDocs.Assembly.Mcp/.mcp/server.json
