@@ -1,0 +1,38 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/client.schema.json",
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "storage_path",
+      "description": "Base folder for input and output files. Leave empty to use the repository root.",
+      "password": false
+    }
+  ],
+  "servers": {
+    "groupdocs-assembly": {
+      "type": "stdio",
+      "command": "dnx",
+      "args": ["GroupDocs.Assembly.Mcp", "--yes"],
+      "env": {
+        "GROUPDOCS_MCP_STORAGE_PATH": "${input:storage_path}"
+      }
+    },
+    "groupdocs-assembly-dev": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "src/GroupDocs.Assembly.Mcp",
+        "-c",
+        "Release",
+        "--no-launch-profile"
+      ],
+      "env": {
+        "GROUPDOCS_MCP_STORAGE_PATH": "${input:storage_path}",
+        "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+        "DOTNET_NOLOGO": "1"
+      }
+    }
+  }
+}
