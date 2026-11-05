@@ -1,0 +1,28 @@
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "storage_path",
+      "description": "Base folder for input and output files.",
+      "password": false
+    },
+    {
+      "type": "promptString",
+      "id": "license_path",
+      "description": "Path to GroupDocs license file (optional - evaluation mode if empty).",
+      "password": false
+    }
+  ],
+  "servers": {
+    "groupdocs-assembly": {
+      "type": "stdio",
+      "command": "dnx",
+      "args": ["GroupDocs.Assembly.Mcp", "--yes"],
+      "env": {
+        "GROUPDOCS_MCP_STORAGE_PATH": "${input:storage_path}",
+        "GROUPDOCS_MCP_OUTPUT_PATH": "${input:storage_path}",
+        "GROUPDOCS_LICENSE_PATH": "${input:license_path}"
+      }
+    }
+  }
+}
