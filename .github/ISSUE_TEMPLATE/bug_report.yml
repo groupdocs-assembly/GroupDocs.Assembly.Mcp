@@ -1,0 +1,73 @@
+name: Bug report
+description: Something broke — a tool call failed, the server won't start, or output is wrong
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: Package version
+      description: The GroupDocs.Assembly.Mcp version (e.g. 26.10.0). `dnx` without a pin uses the latest — check the server startup banner.
+      placeholder: "26.10.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: install-method
+    attributes:
+      label: Install method
+      options:
+        - dnx (no install)
+        - dotnet tool install -g
+        - Docker (GHCR image)
+        - Docker (Docker Hub image)
+        - Built from source
+    validations:
+      required: true
+  - type: dropdown
+    id: client
+    attributes:
+      label: MCP client
+      options:
+        - Claude Desktop
+        - Claude Code
+        - VS Code / GitHub Copilot
+        - Visual Studio 2022
+        - Cursor
+        - Windsurf
+        - Cline
+        - JetBrains Rider
+        - Other (say which in the description)
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux
+    validations:
+      required: true
+  - type: dropdown
+    id: license-mode
+    attributes:
+      label: License mode
+      description: Evaluation mode has known limits (watermark, 15-document cap) — see the README's Licensing section.
+      options:
+        - Evaluation mode (no license)
+        - Licensed (GROUPDOCS_LICENSE_PATH set)
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: The tool call you made (tool name + arguments), what you expected, and what you got instead. Paste the full error text from the tool response — it usually contains the underlying exception chain.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Smallest sequence that triggers it. If it depends on a specific document, describe its format/size (attach it only if it contains nothing sensitive — this is a public tracker).
