@@ -1,0 +1,41 @@
+# Keep the build context to the sources `docker/Dockerfile` actually publishes.
+#
+# Without this file the context is whatever the working tree happens to hold: on a developer
+# machine that includes src/**/bin, src/**/obj and build_out/, which is ~800 MB and made local
+# `docker build` runs fail on context transfer. CI never noticed because a fresh checkout has
+# none of it. Local builds are how the image gets verified before release, so
+# they have to work.
+#
+# Everything not listed here is still copied: the Dockerfile does `COPY . .` and then publishes
+# src/GroupDocs.Assembly.Mcp/GroupDocs.Assembly.Mcp.csproj, so src/, build/ and any root-level
+# MSBuild or NuGet settings must stay in.
+
+# Build output
+**/bin/
+**/obj/
+build_out/
+TestResults/
+
+# Version control and CI
+.git/
+.github/
+.gitattributes
+.gitignore
+
+# Editor / IDE state
+.vs/
+.vscode/
+.idea/
+*.user
+
+# Docs and release material: not compiled, and they change on almost every commit,
+# which would otherwise bust the build cache for no reason.
+*.md
+docs/
+changelog/
+assets/
+install/
+
+# The image never builds itself
+docker/
+.dockerignore
