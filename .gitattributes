@@ -1,0 +1,40 @@
+# Default behavior: normalize line endings on commit, auto-detect text
+* text=auto eol=lf
+
+# Windows-specific text files that must stay CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=lf
+
+# Source & config — explicit LF
+*.cs text eol=lf
+*.csproj text eol=lf
+*.props text eol=lf
+*.targets text eol=lf
+*.sln text eol=crlf
+*.json text eol=lf
+*.xml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.editorconfig text eol=lf
+*.gitattributes text eol=lf
+*.gitignore text eol=lf
+
+# Binary assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.nupkg binary
+*.snupkg binary
+*.zip binary
+*.dll binary
+*.exe binary
+*.lic binary
+
+# Force LF in Dockerfile (essential for running in Linux containers)
+Dockerfile* text eol=lf
