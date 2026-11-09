@@ -2,13 +2,13 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
   "description": "MCP server for GroupDocs.Assembly — generate documents from templates and data with AI agents.",
   "name": "io.github.groupdocs-assembly/groupdocs-assembly-mcp",
-  "version": "26.10.0",
+  "version": "26.11.0",
   "packages": [
     {
       "registryType": "nuget",
       "registryBaseUrl": "https://api.nuget.org/v3/index.json",
       "identifier": "GroupDocs.Assembly.Mcp",
-      "version": "26.10.0",
+      "version": "26.11.0",
       "transport": {
         "type": "stdio"
       },

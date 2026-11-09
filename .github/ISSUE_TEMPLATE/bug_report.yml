@@ -6,8 +6,8 @@ body:
     id: version
     attributes:
       label: Package version
-      description: The GroupDocs.Assembly.Mcp version (e.g. 26.10.0). `dnx` without a pin uses the latest — check the server startup banner.
-      placeholder: "26.10.0"
+      description: The GroupDocs.Assembly.Mcp version (e.g. 26.11.0). `dnx` without a pin uses the latest — check the server startup banner.
+      placeholder: "26.11.0"
     validations:
       required: true
   - type: dropdown

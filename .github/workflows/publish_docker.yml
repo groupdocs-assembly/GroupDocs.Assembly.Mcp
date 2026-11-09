@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to publish as Docker image tag (must match build/dependencies.props, e.g. 26.10.0)'
+        description: 'Version to publish as Docker image tag (must match build/dependencies.props, e.g. 26.11.0)'
         required: true
         type: string
 
@@ -56,7 +56,7 @@ jobs:
           fi
 
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::Version '$VERSION' does not match YY.MM.N (e.g. 26.10.0)."
+            echo "::error::Version '$VERSION' does not match YY.MM.N (e.g. 26.11.0)."
             exit 1
           fi
 

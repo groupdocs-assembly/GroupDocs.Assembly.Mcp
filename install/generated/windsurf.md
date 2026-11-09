@@ -8,4 +8,4 @@ Windsurf has no MCP CLI - add the server via its config file:
 3. Refresh the MCP server list.
 
 An empty `GROUPDOCS_LICENSE_PATH` in the pasted config runs in evaluation mode.
-Pin a version by replacing `GroupDocs.Assembly.Mcp` with `GroupDocs.Assembly.Mcp@26.10.0`.
+Pin a version by replacing `GroupDocs.Assembly.Mcp` with `GroupDocs.Assembly.Mcp@26.11.0`.

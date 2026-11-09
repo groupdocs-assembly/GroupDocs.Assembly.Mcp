@@ -1,7 +1,7 @@
 ---
 id: 001
 date: 2026-10-30
-version: 26.10.0
+version: 26.11.0
 type: feature
 ---
 

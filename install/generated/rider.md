@@ -17,4 +17,4 @@ Settings -> Tools -> AI Assistant -> Model Context Protocol (MCP) -> Add. Choose
 ```
 
 An empty `GROUPDOCS_LICENSE_PATH` runs in evaluation mode. Pin a version by
-replacing `GroupDocs.Assembly.Mcp` with `GroupDocs.Assembly.Mcp@26.10.0`.
+replacing `GroupDocs.Assembly.Mcp` with `GroupDocs.Assembly.Mcp@26.11.0`.

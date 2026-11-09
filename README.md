@@ -38,7 +38,7 @@ Pulls the latest stable release on every invocation. To pin a version (recommend
 configs and CI), append `@<version>`:
 
 ```bash
-dnx GroupDocs.Assembly.Mcp@26.10.0 --yes
+dnx GroupDocs.Assembly.Mcp@26.11.0 --yes
 ```
 
 The server reads templates and data from `GROUPDOCS_MCP_STORAGE_PATH` (default: the current
@@ -102,7 +102,7 @@ docker run --rm -i \
 
 Images are published to GHCR (`ghcr.io/groupdocs-assembly/assembly-net-mcp`) and Docker Hub
 (`groupdocs/assembly-net-mcp`) for `linux/amd64` + `linux/arm64`, tagged `latest` plus an immutable
-version tag matching each NuGet release (e.g. `:26.10.0`). The image includes every native library
+version tag matching each NuGet release (e.g. `:26.11.0`). The image includes every native library
 and font the engine needs.
 
 #### Docker on Linux: run the container as your user

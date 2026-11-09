@@ -42,6 +42,6 @@ Without a licence every tool works; generated documents start with an "Evaluatio
 workbooks gain an extra worksheet, and e-mail messages keep only their plain-text body. The image
 includes libgdiplus and fonts, so presentation templates and PDF output work out of the box.
 
-- Tags: `latest` + an immutable version tag per release matching NuGet (e.g. `26.10.0`).
+- Tags: `latest` + an immutable version tag per release matching NuGet (e.g. `26.11.0`).
 - Source and docs: https://github.com/groupdocs-assembly/GroupDocs.Assembly.Mcp
 - NuGet (`dnx GroupDocs.Assembly.Mcp --yes`): https://www.nuget.org/packages/GroupDocs.Assembly.Mcp

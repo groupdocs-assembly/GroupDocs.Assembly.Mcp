@@ -1,4 +1,4 @@
-# Generated install links - GroupDocs Assembly MCP (source: install/config.json, version 26.10.0)
+# Generated install links - GroupDocs Assembly MCP (source: install/config.json, version 26.11.0)
 
 Do not edit by hand; run `pwsh install/generate-install-links.ps1`.
 

@@ -17,4 +17,4 @@ GROUPDOCS_MCP_OUTPUT_PATH = "/path/to/documents"
 GROUPDOCS_LICENSE_PATH = ""   # empty = evaluation mode; set to your GroupDocs.Total.lic to lift limits
 ```
 
-Pin a version by replacing `GroupDocs.Assembly.Mcp` with `GroupDocs.Assembly.Mcp@26.10.0`.
+Pin a version by replacing `GroupDocs.Assembly.Mcp` with `GroupDocs.Assembly.Mcp@26.11.0`.

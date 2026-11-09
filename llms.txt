@@ -4,7 +4,7 @@ MCP server for GroupDocs.Assembly — generate Word, Excel, PowerPoint, PDF and 
 
 ## Install
 
-- dnx (recommended): dnx GroupDocs.Assembly.Mcp --yes   (pin: GroupDocs.Assembly.Mcp@26.10.0)
+- dnx (recommended): dnx GroupDocs.Assembly.Mcp --yes   (pin: GroupDocs.Assembly.Mcp@26.11.0)
 - Docker: docker run --rm -i -v "$(pwd)/documents:/data" ghcr.io/groupdocs-assembly/assembly-net-mcp:latest   (Linux hosts: add --user "$(id -u):$(id -g)")
 - Global tool: dotnet tool install -g GroupDocs.Assembly.Mcp   then   groupdocs-assembly-mcp
 - Client key: groupdocs-assembly · MCP Registry: io.github.groupdocs-assembly/groupdocs-assembly-mcp
