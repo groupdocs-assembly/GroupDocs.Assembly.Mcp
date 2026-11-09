@@ -4,7 +4,10 @@
 .SYNOPSIS
   Publishes signed NuGet packages to NuGet.org.
   Expects packages in .\artifacts folder (output of the signing step).
+  In CI NUGET_API_KEY_PROD is the 1-hour key issued by NuGet Trusted Publishing (NuGet/login step
+  in publish_prod.yml); no long-lived key is stored in the repository secrets.
 .EXAMPLE
+  # Manual run: create a short-lived (max 30 days) key on nuget.org -> API keys, then
   $env:NUGET_API_KEY_PROD = "your-api-key"
   .\publish-prod.ps1
 #>

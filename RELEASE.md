@@ -113,7 +113,7 @@ The tag push fires both workflows simultaneously with `github.ref_name = {NEW_VE
 3. Build with `BUILD_TYPE=PROD` (stable version, no `-prod-xxx` suffix).
 4. Pack `.nupkg` + `.snupkg` (includes `.mcp/server.json` and `tools/net10.0/any/` layout).
 5. Sign `.nupkg` with SSL.com eSigner. Signing failures detected via exit code **and** file count.
-6. Push to NuGet.org using `NUGET_API_KEY_PROD`.
+6. Push to NuGet.org via **Trusted Publishing**: `NuGet/login` exchanges the job's GitHub OIDC token for a 1-hour API key right before the push (no long-lived key stored).
 7. Create the GitHub Release (+ tag if needed) with changelog body + `.nupkg` attached.
 
 **`publish_docker.yml` — container images:**
@@ -161,13 +161,16 @@ The tag push fires both workflows simultaneously with `github.ref_name = {NEW_VE
 
 | Secret | Purpose |
 |---|---|
-| `NUGET_API_KEY_PROD` | NuGet.org API key scoped to `GroupDocs.Assembly.Mcp` |
+| `NUGET_USER` | nuget.org username (profile name, not e-mail) of the account that created the Trusted Publishing policy for `GroupDocs.Assembly.Mcp` |
 | `ES_USERNAME` | SSL.com eSigner username |
 | `ES_PASSWORD` | SSL.com eSigner password |
 | `ES_TOTP_SECRET` | SSL.com eSigner TOTP 2FA secret |
 | `CODE_SIGN_CLIENT_ID` | SSL.com eSigner OAuth CLIENT_ID |
 | `DOCKERHUB_USERNAME` | Docker Hub username for `groupdocs` org |
 | `DOCKERHUB_TOKEN` | Docker Hub access token scoped to `groupdocs/assembly-net-mcp` |
+
+
+> **NuGet.org Trusted Publishing** — the push uses a temporary API key obtained from the job's GitHub OIDC token, so there is no `NUGET_API_KEY_PROD` secret any more. A policy must exist on nuget.org (user menu → *Trusted Publishing* → *Add*): Package owner `groupdocs`, Repository owner `groupdocs-assembly`, Repository `GroupDocs.Assembly.Mcp`, Workflow file `publish_prod.yml`, environment empty, scope *Push only new package versions* for `GroupDocs.Assembly.Mcp`. `NUGET_USER` is the nuget.org username of the account that created that policy; it must stay a member of the `groupdocs` organization, otherwise nuget.org deactivates the policy.
 
 **Variables** (`Settings → Secrets and variables → Actions → Variables`):
 

@@ -25,6 +25,7 @@ jobs:
       CODE_SIGN_TOOL_VERSION: ${{ vars.CODE_SIGN_TOOL_VERSION || '1.3.0' }}
     permissions:
       contents: write         # required to create GitHub Release
+      id-token: write        # NuGet Trusted Publishing: GitHub OIDC token for NuGet/login
     steps:
       - name: Verify required secrets are configured
         shell: pwsh
@@ -33,14 +34,14 @@ jobs:
           ES_USERNAME:         ${{ secrets.ES_USERNAME }}
           ES_PASSWORD:         ${{ secrets.ES_PASSWORD }}
           ES_TOTP_SECRET:      ${{ secrets.ES_TOTP_SECRET }}
-          NUGET_API_KEY_PROD:  ${{ secrets.NUGET_API_KEY_PROD }}
+          NUGET_USER:          ${{ secrets.NUGET_USER }}
         run: |
           $required = @(
             'CODE_SIGN_CLIENT_ID',
             'ES_USERNAME',
             'ES_PASSWORD',
             'ES_TOTP_SECRET',
-            'NUGET_API_KEY_PROD'
+            'NUGET_USER'
           )
           $missing = @()
           foreach ($name in $required) {
@@ -184,9 +185,19 @@ jobs:
           }
           Write-Host "Signing verified: $($signed.Count) of $($expected.Count) packages present in artifacts."
 
+      # NuGet Trusted Publishing: no stored API key. NuGet/login sends the job's GitHub OIDC token to
+      # nuget.org, which matches it against the Trusted Publishing policy (package owner 'groupdocs',
+      # repository groupdocs-assembly/GroupDocs.Assembly.Mcp, workflow publish_prod.yml) and returns a 1-hour API key.
+      # Keep this step right before the push - the key expires one hour after it is issued.
+      - name: NuGet login (Trusted Publishing, OIDC -> temporary API key)
+        id: nuget_login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}   # nuget.org username (profile name, not e-mail) that created the policy
+
       - name: Publish to Prod
         env:
-          NUGET_API_KEY_PROD: ${{ secrets.NUGET_API_KEY_PROD }}
+          NUGET_API_KEY_PROD: ${{ steps.nuget_login.outputs.NUGET_API_KEY }}
         run: .\publish-prod.ps1
 
       - name: Archive packages
